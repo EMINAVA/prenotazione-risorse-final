@@ -1,0 +1,83 @@
+version: "3.9"
+services:
+  backoffice-auth-mysql:
+    image: "mysql:8.0"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=backoffice
+    volumes:
+      - backoffice-mysql-vol:/var/lib/mysql
+  admin-mysql:
+    image: "mysql:8.0"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=administration
+    volumes:
+      - admin-mysql-vol:/var/lib/mysql
+  calendar-mysql:
+    image: "mysql:8.0"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=calendar
+    volumes:
+      - calendar-mysql-vol:/var/lib/mysql
+  backoffice-webapp:
+    build:
+      context: .
+      dockerfile: Backoffice.Dockerfile
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    ports:
+      - "9080:8080"
+    depends_on:
+      - backoffice-auth-mysql
+    restart: unless-stopped
+  auth-webapp:
+    build:
+      context: .
+      dockerfile: Auth.Dockerfile
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    ports:
+      - "9081:8080"
+    depends_on:
+      - backoffice-auth-mysql
+    restart: unless-stopped
+  admin-webapp:
+    build:
+      context: .
+      dockerfile: Admin.Dockerfile
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    ports:
+      - "9082:8080"
+    depends_on:
+      - admin-mysql
+    restart: unless-stopped
+  calendar-webapp:
+    build:
+      context: .
+      dockerfile: Calendar.Dockerfile
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    ports:
+      - "9083:8080"
+    depends_on:
+      - calendar-mysql
+    restart: unless-stopped
+  api-gateway:
+    image: nginx:latest
+    ports:
+      - "9084:80"
+    depends_on:
+      - backoffice-webapp
+      - auth-webapp
+      - admin-webapp
+      - calendar-webapp
+    volumes:
+      - ./nginx_conf/:/etc/nginx/
+    restart: unless-stopped
+volumes:
+  backoffice-mysql-vol:
+  admin-mysql-vol:
+  calendar-mysql-vol:
